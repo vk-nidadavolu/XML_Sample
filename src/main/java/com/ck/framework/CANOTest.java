@@ -1,18 +1,29 @@
 package com.ck.framework;
 
-import com.ck.framework.pojo.cano.CorporateActionOption39Choice;
-import com.ck.framework.pojo.cano.Document;
-import org.testng.annotations.Test;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import org.testng.annotations.Test;
+import org.w3c.dom.Document;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.*;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 
 public class CANOTest {
 
@@ -46,13 +57,26 @@ public class CANOTest {
     }
 
     @Test
-    public void generateXMLTest() {
+    public void buildCANOMessage() {
         XML XML = new XML.XMLBuilder().data(data).build();
         String xml = XML.generateXML(MessageType.CANO);
-        xml = xml.replace("<tag1>\n\t\tUDFR</tag1>", "<tag1>abdc</tag1>");
-        System.out.println(xml);
+        writeXML(xml, "CANO");
     }
-
+    @Test
+    public void buildCANOEMessage() {
+        XML XML = new XML.XMLBuilder().data(data).build();
+        String xml = XML.generateXML(MessageType.CANOE);
+        writeXML(xml, "CANOE");
+    }
+    private void writeXML(String xml, String fileName) {
+        try {
+            FileWriter writer = new FileWriter("./src/test/resources/generatedXml/" + fileName + ".xml");
+            writer.write(xml);
+            writer.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
     @Test
     public void demo() {
         Set<Class<?>> classes = findAllClassesUsingClassLoader("com.ck.framework.pojo.cano");
@@ -66,7 +90,7 @@ public class CANOTest {
         }
     }
 
-    public Set<Class<?>> findAllClassesUsingClassLoader(String packageName) {
+    private Set<Class<?>> findAllClassesUsingClassLoader(String packageName) {
         InputStream stream = ClassLoader.getSystemClassLoader()
                 .getResourceAsStream(packageName.replaceAll("[.]", "/"));
         BufferedReader reader = new BufferedReader(new InputStreamReader(Objects.requireNonNull(stream)));
