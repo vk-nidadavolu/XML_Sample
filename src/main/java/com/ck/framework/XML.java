@@ -7,6 +7,9 @@ import jakarta.xml.bind.JAXBElement;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
+import javax.xml.datatype.XMLGregorianCalendar;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -34,6 +37,7 @@ public class XML {
         WRAPPER_TYPE_MAP.put(Long.class, long.class);
         WRAPPER_TYPE_MAP.put(Short.class, short.class);
         WRAPPER_TYPE_MAP.put(Void.class, void.class);
+        WRAPPER_TYPE_MAP.put(XMLGregorianCalendar.class, XMLGregorianCalendar.class);
     }
 
     private XML(){
@@ -76,20 +80,32 @@ public class XML {
     }
 
     private <T> T createObjects (Class<T> clazz) {
+        String str = clazz.getSimpleName();
+        System.out.println(str);
         try {
             T obj = (T) new Object();
             if(!clazz.isEnum()) {
                 obj = clazz.getDeclaredConstructor().newInstance();
             }
             Field[] fields = clazz.getDeclaredFields();
+
             for(Field field : fields) {
+
                 String fieldKey = clazz.getSimpleName() + "." + field.getName();
+                str = fieldKey;
                 field.setAccessible(true);
                 if(field.isEnumConstant()) {
-
+                    /*if(data.containsKey(fieldKey)) {
+                        if(fieldKey.equals("IdentificationType44Choice.cd"))
+                            getEnum(fieldKey.getClass(), data.get(fieldKey));
+//                        getEnum(field.isEnumConstant(), data.get(fieldKey));
+                    }*/
                 } else if(isPrimitiveType(field.getType())) {
                     if(data.containsKey(fieldKey)) {
-                        field.set(obj, data.get(fieldKey));
+                        if(field.getType().equals(XMLGregorianCalendar.class))
+                            field.set(obj,gregoriancaldar());
+                        else
+                            field.set(obj, data.get(fieldKey));
                     }
                 } else if(field.getType().equals(List.class)) {
                     Set<String> valueList = data.keySet().stream().filter(s -> s.startsWith(fieldKey)).collect(Collectors.toSet());
@@ -117,7 +133,7 @@ public class XML {
             }
             return obj;
         } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
-            throw new RuntimeException("Failed to generated Objects", e);
+            throw new RuntimeException("Failed to generated Objects " + str, e);
         }
     }
 
@@ -128,6 +144,19 @@ public class XML {
     }
     private static boolean isPrimitiveType(Class<?> source) {
         return WRAPPER_TYPE_MAP.containsKey(source);
+    }
+
+    private static XMLGregorianCalendar gregoriancaldar(){
+        GregorianCalendar cal = new GregorianCalendar();
+        cal.setTime(new Date());
+        XMLGregorianCalendar xCal ;
+        try {
+            xCal = DatatypeFactory.newInstance()
+                    .newXMLGregorianCalendar(cal);
+        } catch (DatatypeConfigurationException e) {
+            throw new RuntimeException(e);
+        }
+        return xCal;
     }
 
     public static class XMLBuilder {
